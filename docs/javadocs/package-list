@@ -1,0 +1,10 @@
+atrai
+atrai.antlr
+atrai.core
+atrai.interpreters.COMPILEDFUN
+atrai.interpreters.COMPILEDLET
+atrai.interpreters.LET
+atrai.interpreters.TYPEDFUN
+atrai.interpreters.TYPEDLET
+atrai.interpreters.common
+atrai.interpreters.runtime

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>API Overview</title>
+
+</head>
+<body>
+<h1>API Details and Tutorial</h1>
+<p>This library is provided to you by the CS164 staff to help you write interpreters for the languages given
+    in the assignments. This document describes a typical interaction with the API, details an example, and provides
+    links into the Javadocs so you can learn how each component works.</p>
+<p>The basic workflow for writing interpreters is as follows:</p>
+<ol>
+    <li>Define an ANTLR grammar to parse strings in the language</li>
+    <li>Pass the fully-qualified name of the grammar into a
+        <a href="langeng/antlr/GenericAntlrToSerializedTree.html">GenericAntlrToSerializedTree</a>
+    </li>
+    <li>Define a <a href="langeng/core/Transformer.html">Transformer</a> with all the patterns, substitutions you
+        wish to apply, and state to modify. You might find <a
+                href="langeng/interpreters/common/DynamicTypeChecker.html">DynamicTypeChecker</a> useful; just import
+        its static methods using <code>import static atrai.interpreters.common.DynamicTypeChecker.*;</code>
+    </li>
+    <li>Call the <a
+            href="langeng/core/SerializedTree.html#transform-atrai.core.Transformer-">transform</a>
+        method of your serialized tree.
+    </li>
+    <li>Get the result from the root of the tree, now that it has been transformed (evaluated)</li>
+</ol>
+<p>You can see this structure demonstrated with two interpreters. One for
+    <a href="langeng/interpreters/LET/Interpreter.html">LET</a>, and the other for
+    <a href="langeng/interpreters/LETREC/Interpreter.html">LETREC</a>.</p>
+
+<h2>Trees</h2>
+<p>The first thing to understand is the fundamental data structure of the API. This is made up of ten classes relating
+    to different parts of a generic parse tree structure. They can be broken down into two categories: nodes and trees.
+    All nodes derive from <a href="langeng/core/TreeNode.html">TreeNode</a>, which can match tree structures against one
+    another and fill in holes (or placeholders) with other TreeNodes or leaves.</p>
+
+<h3>Tree Nodes</h3>
+<p>Next, the <a href="langeng/core/InternalNode.html">InternalNode</a> class corresponds to a non-terminal in the
+    grammar. It keeps track of its children, which can only be modified via
+    <a href="langeng/core/Transformer.html">Transformer</a>s and <a href="langeng/core/Visitor.html">Visitor</a>s. These
+    APIs are described in the forthcoming sections. Its children can be <b>any</b> Java object, and tokens coming in
+    from an ANTLR parser will be represented as Strings, which you will be responsible for casting to numbers at
+    runtime, where applicable.
+</p>
+
+<p>InternalNodes can have other InternalNodes as children, as well as <a href="langeng/core/LeafNode.html">LeafNode</a>s,
+    which are treated specially in certain circumstances. There are three types of LeafNodes:
+</p>
+
+<ol>
+    <li><a href="langeng/core/ReplacementToken.html">ReplacementToken</a>: This leaf can only appear in a
+        <a href="langeng/core/TemplateTree.html">TemplateTree</a>. It represents a hole that can be filled by TreeNode's
+        replace() method. Each ReplacementToken has
+        an array index associated with it that it uses to decide which tree to replace itself with.
+    </li>
+    <li><a href="langeng/core/WildcardToken.html">WildcardToken</a>: This leaf can only appear in a <a
+            href="langeng/core/PatternTree.html">PatternTree</a>. It represents a hole that matches (according to
+        TreeNode's match method) with any subtree of another tree rooted at the same position.
+    </li>
+    <li><a href="langeng/core/WildcardCaptureToken.html">WildcardCaptureToken</a>: This leaf can only appear in a
+        <a href="langeng/core/PatternTree.html">PatternTree</a>. It also represents a hole that matches any tree, but it
+        additionally populates an array that is supplied by TreeNode's match method. This array can then be supplied to
+        a TemplateTree to fill its ReplacementToken holes with the matches from the WildcardCaptureToken's PatternTree.
+    </li>
+</ol>
+
+<h3>Tree Types</h3>
+<p>
+    There are three types of trees, the simplest is the <a href="langeng/core/SerializedTree.html">SerializedTree</a>,
+    which can be built from an ANTLR lexer and parser, along with a string that the ANTLR grammar accepts. It can be
+    visited and transformed by the appropriate classes: <a href="langeng/core/Visitor.html">Visitor</a> and <a
+        href="langeng/core/Transformer.html">Transformer</a>. It is made up only of InternalNodes and leaf objects, and
+    may not have wildcards or replacements.
+</p>
+<p>
+    The next type of tree, the <a href="langeng/core/PatternTree.html">PatternTree</a>, is permitted to contain <a
+        href="langeng/core/WildcardToken.html">WildcardToken</a>s and <a href="langeng/core/WildcardCaptureToken.html">WildcardCaptureToken</a>s.
+    It is used to match and capture (extract) structures from other trees. The last type of tree, the <a
+        href="langeng/core/TemplateTree.html">TemplateTree</a> can be filled in by other tree types and is the only tree
+    that may contain <a href="langeng/core/ReplacementToken.html">ReplacementToken</a> nodes.
+</p>
+
+<h2>Tree Expressions</h2>
+<p>A serialized tree is typically produced from a string and an ANTLR grammar, but the other two types of trees are
+    typically produced from a <i>tree expression</i>. Non-terminal expressions have the following general form, while
+    terminal expressions are tokenized by a given <a href="langeng/core/Lexer.html">Lexer</a>, which can be built from
+    an ANTLR grammar.
+</p>
+<p style="text-align: center"><code>(%&lt;language&gt; &lt;id&gt;
+    &lt;non-terminal&gt; &lt;child 1&gt; &lt;child 2&gt; ...%)</code></p>
+<p>An example of this for the LET language expression <code>x + 3 + 4</code> would be</p>
+<p style="text-align: center;"><code>(%LET 0 prog (%LET 1 expr (%LET 2 expr (%LET 3 expr (%LET 4 iden x%)%) + (%LET 5
+    expr (%LET 6 num 3%)%)%) +
+    (%LET 7 expr (%LET 8 num 4%)%)%)%)</code></p>
+<p>Here, the top-level non-terminal is <code>prog</code>, and the internal expressions become <code>expr</code>s. The
+    ids of each node are unique and can be mapped back to line+column pairs for both the start and end of the
+    production. Notice that the addition operator appears in expressions of the form <code>(%LET &lt;id&gt; expr &lt;lhs&gt;
+        + &lt;rhs&gt;%)</code>. The token representing the actual operation is one of the children of expr. See the
+    provided ANTLR grammar to understand why; it's because the operators are not their own non-terminals.
+</p>
+<p>Since richer type information is not available, the tokens are represented as Strings internally. We reiterate: these
+    must be validated and cast before being used as numbers or other types.
+</p>
+<p>We can create pattern trees by introducing a little extra syntax. To match the above expression type, we could
+    write:</p>
+<p style="text-align: center;"><code>(%LET @ expr @_ + @_%)</code></p>
+<p>The single <code>@</code> sign represents a WildcardToken and the <code>@_</code> sign represents a
+    WildcardCaptureToken. Similarly, we represent ReplacementTokens with <code>$&lt;idx&gt;</code>, where
+    <code>idx</code> is a number
+    referring to a position in an array.</p>
+<p><b>Any character can be escaped with a backtick (`)</b>. This is important if your program contains a sequence that
+    matches one of the special sequences: <code>(*</code>, <code>*)</code>, <code>@</code>, <code>@_</code>, or
+    <code>$&lt;digits&gt;</code>
+</p>
+
+<h2>Transformers</h2>
+<p>A <a href="langeng/core/Transformer.html">Transformer</a> is composed out of a series of <a
+        href="langeng/core/TransformerStep.html">TransformerStep</a>s, each of which contain a <b>pattern</b> tree
+    expression, a <b>modifier</b>, and a <b>replacer</b>, which is either a template tree expression or a Java function.
+    Each step is evaluated against the top of the tree in sequence. First, the pattern is matched against the tree, and
+    any capture groups are extracted. If it is a match, the capture groups are passed to the modifier, which is a plain
+    Java function that can mutate the capture groups in place. Lastly, the replacer receives the (possibly modified)
+    capture groups and produces a new tree from these groups. This tree is the result of the transformation.
+</p>
+
+<p>To make this concrete, what follows is an annotated example of a (very incomplete) Transformer for evaluating LET
+    that can nonetheless evaluate a simple arithmetic expression.</p>
+
+<pre><code class="java">// First, parse the program
+GenericAntlrToSerializedTree p = new GenericAntlrToSerializedTree();
+String program = "3 + 5";
+SerializedTree st = p.parseStringToSerializedTree(
+        "LET",               // short name for the language
+        "atrai.antlr.LET", // name prefex for ANTLR-generated classes (loaded by reflection)
+        "prog",              // name of top-level production rule
+        program);            // the program to parse
+
+// This tokenizer is passed to SerializedTree, PatternTree, and TemplateTree by the Transformer
+// so that the tree expressions can be parsed correctly.
+ANTLRTokenizer tokenizer = new ANTLRTokenizer("atrai.antlr.LET");
+
+// Create a new transformer from a tokenizer for the language whose parse trees we want to transform.
+Transformer transformer = new Transformer(tokenizer);
+
+// We add a rule for converting strings to numbers
+transformer.addTransformer("(%LET @_ num @_%)", c -> {
+    // We get the location in the source file from the ID, which is in c[1]
+    // c[0], like in a regex engine, refers to the whole "num" tree, not the
+    // first capture group.
+    Location l = st.getLocationFromID((Integer) c[1]);
+
+    // s2i is a convenience method that attempts to convert a string to
+    // a number and throws an exception if it fails
+    return s2i(c[2], l);
+});
+
+// Some expressions contain a single child
+transformer.addTransformer("(%LET @ expr @_ %)", c -> {
+    return transformer.transform(c[1]);
+});
+
+transformer.addTransformer("(%LET @_ expr @_ + @_%)", c -> {
+    Location l = st.getLocationFromID((Integer) c[1]);
+
+    // Apply the transformer recursively on the lhs and rhs. Add their results
+    // after verifying that they are integers (that's what 'i' does)
+    return i(transformer.transform(c[2]), l) + i(transformer.transform(c[3]), l);
+});
+
+transformer.addTransformer("(%LET @ prog @_ %)", c -> {
+    // just drop the top-level prog part of the tree.
+    return transformer.transform(c[1]);
+});
+
+// more rules follow ...
+
+// apply the transformer and get the result (now the root of the tree)
+st.transform(transformer);
+System.out.println(st.getRoot()); // prints 8
+</code></pre>
+<p>This example contained only transformers that match a pattern and then give the capture groups to a function, but
+    many other permutations are possible! The Transformer class includes overrides for every combination of pattern
+    matching, modification, and replacements. In addition to these, the Transformer also allows you to add
+    <i>observers</i>, which call a function on the capture groups of a matched pattern without modifying the tree. This
+    allows you to use the Transformer class to gather variable names within a subtree, for instance.
+</p>
+<p>
+    The short convenience methods are imported statically from <a
+        href="langeng/interpreters/common/DynamicTypeChecker.html">DynamicTypeChecker</a>.
+</p>
+</body>
+</html>

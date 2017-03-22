@@ -1,0 +1,118 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<title>Source code</title>
+<link rel="stylesheet" type="text/css" href="../../../stylesheet.css" title="Style">
+</head>
+<body>
+<div class="sourceContainer">
+<pre><span class="sourceLineNo">001</span>package atrai.core;<a name="line.1"></a>
+<span class="sourceLineNo">002</span><a name="line.2"></a>
+<span class="sourceLineNo">003</span>import atrai.antlr.Location;<a name="line.3"></a>
+<span class="sourceLineNo">004</span><a name="line.4"></a>
+<span class="sourceLineNo">005</span>import java.util.ArrayList;<a name="line.5"></a>
+<span class="sourceLineNo">006</span><a name="line.6"></a>
+<span class="sourceLineNo">007</span>/**<a name="line.7"></a>
+<span class="sourceLineNo">008</span> * A wrapper for rooted trees<a name="line.8"></a>
+<span class="sourceLineNo">009</span> *<a name="line.9"></a>
+<span class="sourceLineNo">010</span> * @author Koushik Sen<a name="line.10"></a>
+<span class="sourceLineNo">011</span> * @author Alex Reinking<a name="line.11"></a>
+<span class="sourceLineNo">012</span> */<a name="line.12"></a>
+<span class="sourceLineNo">013</span>public class UntypedTree extends Tree {<a name="line.13"></a>
+<span class="sourceLineNo">014</span><a name="line.14"></a>
+<span class="sourceLineNo">015</span>    /**<a name="line.15"></a>
+<span class="sourceLineNo">016</span>     * Construct a new untyped tree with given root and source positions.<a name="line.16"></a>
+<span class="sourceLineNo">017</span>     *<a name="line.17"></a>
+<span class="sourceLineNo">018</span>     * @param treeNode  the root<a name="line.18"></a>
+<span class="sourceLineNo">019</span>     * @param locations the corresponding source locations<a name="line.19"></a>
+<span class="sourceLineNo">020</span>     */<a name="line.20"></a>
+<span class="sourceLineNo">021</span>    public UntypedTree(Object treeNode, ArrayList&lt;Location&gt; locations) {<a name="line.21"></a>
+<span class="sourceLineNo">022</span>        super(treeNode, locations);<a name="line.22"></a>
+<span class="sourceLineNo">023</span>    }<a name="line.23"></a>
+<span class="sourceLineNo">024</span><a name="line.24"></a>
+<span class="sourceLineNo">025</span>    /**<a name="line.25"></a>
+<span class="sourceLineNo">026</span>     * Create a new untyped tree from some source code and a lexer.<a name="line.26"></a>
+<span class="sourceLineNo">027</span>     *<a name="line.27"></a>
+<span class="sourceLineNo">028</span>     * @param source The source code<a name="line.28"></a>
+<span class="sourceLineNo">029</span>     * @param lexer  The lexer<a name="line.29"></a>
+<span class="sourceLineNo">030</span>     * @return The tree<a name="line.30"></a>
+<span class="sourceLineNo">031</span>     */<a name="line.31"></a>
+<span class="sourceLineNo">032</span>    public static UntypedTree parse(String source, Lexer lexer) {<a name="line.32"></a>
+<span class="sourceLineNo">033</span>        TreeBuilder builder = SerializedTreeParser.parse(source, lexer, false, false);<a name="line.33"></a>
+<span class="sourceLineNo">034</span>        return new UntypedTree(builder.getTree(), builder.getLocations());<a name="line.34"></a>
+<span class="sourceLineNo">035</span>    }<a name="line.35"></a>
+<span class="sourceLineNo">036</span><a name="line.36"></a>
+<span class="sourceLineNo">037</span>    /**<a name="line.37"></a>
+<span class="sourceLineNo">038</span>     * Get the root of the tree (typically a {@link TreeNode})<a name="line.38"></a>
+<span class="sourceLineNo">039</span>     *<a name="line.39"></a>
+<span class="sourceLineNo">040</span>     * @return the root<a name="line.40"></a>
+<span class="sourceLineNo">041</span>     */<a name="line.41"></a>
+<span class="sourceLineNo">042</span>    public Object getRoot() {<a name="line.42"></a>
+<span class="sourceLineNo">043</span>        return rootNode;<a name="line.43"></a>
+<span class="sourceLineNo">044</span>    }<a name="line.44"></a>
+<span class="sourceLineNo">045</span><a name="line.45"></a>
+<span class="sourceLineNo">046</span>}<a name="line.46"></a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre>
+</div>
+</body>
+</html>

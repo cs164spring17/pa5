@@ -1,0 +1,166 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<title>Source code</title>
+<link rel="stylesheet" type="text/css" href="../../../../stylesheet.css" title="Style">
+</head>
+<body>
+<div class="sourceContainer">
+<pre><span class="sourceLineNo">001</span>package atrai.interpreters.common;<a name="line.1"></a>
+<span class="sourceLineNo">002</span><a name="line.2"></a>
+<span class="sourceLineNo">003</span>import atrai.core.Tree;<a name="line.3"></a>
+<span class="sourceLineNo">004</span>import atrai.core.UntypedTree;<a name="line.4"></a>
+<span class="sourceLineNo">005</span>import atrai.interpreters.COMPILEDFUN.FunCompiler;<a name="line.5"></a>
+<span class="sourceLineNo">006</span><a name="line.6"></a>
+<span class="sourceLineNo">007</span>import java.lang.reflect.Constructor;<a name="line.7"></a>
+<span class="sourceLineNo">008</span>import java.lang.reflect.InvocationTargetException;<a name="line.8"></a>
+<span class="sourceLineNo">009</span>import java.util.Objects;<a name="line.9"></a>
+<span class="sourceLineNo">010</span><a name="line.10"></a>
+<span class="sourceLineNo">011</span>/**<a name="line.11"></a>
+<span class="sourceLineNo">012</span> * An abstract class that should be implemented ny any interpreter<a name="line.12"></a>
+<span class="sourceLineNo">013</span> *<a name="line.13"></a>
+<span class="sourceLineNo">014</span> * @author Koushik Sen<a name="line.14"></a>
+<span class="sourceLineNo">015</span> */<a name="line.15"></a>
+<span class="sourceLineNo">016</span>public abstract class Interpreter {<a name="line.16"></a>
+<span class="sourceLineNo">017</span>    public static void main(String[] args) throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {<a name="line.17"></a>
+<span class="sourceLineNo">018</span>        if (args.length != 3) {<a name="line.18"></a>
+<span class="sourceLineNo">019</span>            System.err.println("Usage: java -jar JAR [parse|interpret] fully-qualified-interpreter-class-name file-name");<a name="line.19"></a>
+<span class="sourceLineNo">020</span>            return;<a name="line.20"></a>
+<span class="sourceLineNo">021</span>        }<a name="line.21"></a>
+<span class="sourceLineNo">022</span><a name="line.22"></a>
+<span class="sourceLineNo">023</span>        String command = args[0];<a name="line.23"></a>
+<span class="sourceLineNo">024</span>        if (!Objects.equals(command, "parse") &amp;&amp; !Objects.equals(command, "interpret")) {<a name="line.24"></a>
+<span class="sourceLineNo">025</span>            System.err.println("Usage: java -jar JAR [parse|interpret] interpreter-class-name file-name");<a name="line.25"></a>
+<span class="sourceLineNo">026</span>            return;<a name="line.26"></a>
+<span class="sourceLineNo">027</span>        }<a name="line.27"></a>
+<span class="sourceLineNo">028</span><a name="line.28"></a>
+<span class="sourceLineNo">029</span>        Class classDefinition = Class.forName(args[1]);<a name="line.29"></a>
+<span class="sourceLineNo">030</span>        Constructor cons = classDefinition.getConstructor();<a name="line.30"></a>
+<span class="sourceLineNo">031</span>        Interpreter interpreter = (Interpreter) cons.newInstance();<a name="line.31"></a>
+<span class="sourceLineNo">032</span><a name="line.32"></a>
+<span class="sourceLineNo">033</span>        UntypedTree tree = interpreter.parseFile(args[2]);<a name="line.33"></a>
+<span class="sourceLineNo">034</span>        if (command.equals("parse")) {<a name="line.34"></a>
+<span class="sourceLineNo">035</span>            System.out.println(tree.toIndentedString());<a name="line.35"></a>
+<span class="sourceLineNo">036</span>        } else if (command.equals("interpret")) {<a name="line.36"></a>
+<span class="sourceLineNo">037</span>            if (interpreter instanceof FunCompiler) {<a name="line.37"></a>
+<span class="sourceLineNo">038</span>                ((FunCompiler) interpreter).setName("StaffSolution");<a name="line.38"></a>
+<span class="sourceLineNo">039</span>            }<a name="line.39"></a>
+<span class="sourceLineNo">040</span>            Object result = interpreter.interpret(tree);<a name="line.40"></a>
+<span class="sourceLineNo">041</span>            if (result instanceof Tree) {<a name="line.41"></a>
+<span class="sourceLineNo">042</span>                result = ((Tree) result).toIndentedString();<a name="line.42"></a>
+<span class="sourceLineNo">043</span>            } else if (result instanceof CodeTemplate) {<a name="line.43"></a>
+<span class="sourceLineNo">044</span>                result = ((CodeTemplate) result).generateCode();<a name="line.44"></a>
+<span class="sourceLineNo">045</span>            }<a name="line.45"></a>
+<span class="sourceLineNo">046</span>            System.out.println(result);<a name="line.46"></a>
+<span class="sourceLineNo">047</span>        }<a name="line.47"></a>
+<span class="sourceLineNo">048</span>    }<a name="line.48"></a>
+<span class="sourceLineNo">049</span><a name="line.49"></a>
+<span class="sourceLineNo">050</span>    /**<a name="line.50"></a>
+<span class="sourceLineNo">051</span>     * Parses the file and returns the corresponding untyped tree<a name="line.51"></a>
+<span class="sourceLineNo">052</span>     *<a name="line.52"></a>
+<span class="sourceLineNo">053</span>     * @param fileName file to be parsed<a name="line.53"></a>
+<span class="sourceLineNo">054</span>     * @return untyped tree obtained by parsing the {@code fileName}<a name="line.54"></a>
+<span class="sourceLineNo">055</span>     */<a name="line.55"></a>
+<span class="sourceLineNo">056</span>    public abstract UntypedTree parseFile(String fileName);<a name="line.56"></a>
+<span class="sourceLineNo">057</span><a name="line.57"></a>
+<span class="sourceLineNo">058</span>    /**<a name="line.58"></a>
+<span class="sourceLineNo">059</span>     * Interprets the untyped tree<a name="line.59"></a>
+<span class="sourceLineNo">060</span>     *<a name="line.60"></a>
+<span class="sourceLineNo">061</span>     * @param st the untyped tree to be interpreted<a name="line.61"></a>
+<span class="sourceLineNo">062</span>     * @return the result of interpretation<a name="line.62"></a>
+<span class="sourceLineNo">063</span>     */<a name="line.63"></a>
+<span class="sourceLineNo">064</span>    public abstract Object interpret(UntypedTree st);<a name="line.64"></a>
+<span class="sourceLineNo">065</span><a name="line.65"></a>
+<span class="sourceLineNo">066</span>    /**<a name="line.66"></a>
+<span class="sourceLineNo">067</span>     * Parses and interprets the argument string<a name="line.67"></a>
+<span class="sourceLineNo">068</span>     *<a name="line.68"></a>
+<span class="sourceLineNo">069</span>     * @param sourceString string to be parsed and interpreted<a name="line.69"></a>
+<span class="sourceLineNo">070</span>     * @return the result of interpretation<a name="line.70"></a>
+<span class="sourceLineNo">071</span>     */<a name="line.71"></a>
+<span class="sourceLineNo">072</span>    public Object interpretString(String sourceString) {<a name="line.72"></a>
+<span class="sourceLineNo">073</span>        return interpret(parseString(sourceString));<a name="line.73"></a>
+<span class="sourceLineNo">074</span>    }<a name="line.74"></a>
+<span class="sourceLineNo">075</span><a name="line.75"></a>
+<span class="sourceLineNo">076</span>    /**<a name="line.76"></a>
+<span class="sourceLineNo">077</span>     * Parses the input string and returns the corresponding untyped tree<a name="line.77"></a>
+<span class="sourceLineNo">078</span>     *<a name="line.78"></a>
+<span class="sourceLineNo">079</span>     * @param sourceString string to parsed<a name="line.79"></a>
+<span class="sourceLineNo">080</span>     * @return untyped tree obtained by parsing the {@code sourceString}<a name="line.80"></a>
+<span class="sourceLineNo">081</span>     */<a name="line.81"></a>
+<span class="sourceLineNo">082</span>    public abstract UntypedTree parseString(String sourceString);<a name="line.82"></a>
+<span class="sourceLineNo">083</span><a name="line.83"></a>
+<span class="sourceLineNo">084</span>    /**<a name="line.84"></a>
+<span class="sourceLineNo">085</span>     * Parses and interprets the file passed as argument<a name="line.85"></a>
+<span class="sourceLineNo">086</span>     *<a name="line.86"></a>
+<span class="sourceLineNo">087</span>     * @param filename file to be parsed and interpreted<a name="line.87"></a>
+<span class="sourceLineNo">088</span>     * @return the result of interpretation<a name="line.88"></a>
+<span class="sourceLineNo">089</span>     */<a name="line.89"></a>
+<span class="sourceLineNo">090</span>    public Object interpretFile(String filename) {<a name="line.90"></a>
+<span class="sourceLineNo">091</span>        return interpret(parseFile(filename));<a name="line.91"></a>
+<span class="sourceLineNo">092</span>    }<a name="line.92"></a>
+<span class="sourceLineNo">093</span><a name="line.93"></a>
+<span class="sourceLineNo">094</span>}<a name="line.94"></a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre>
+</div>
+</body>
+</html>
